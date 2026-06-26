@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fluid Wealth OS v9.3</title>
+    <!-- iOS PWA 獨立全螢幕不破圖設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FluidWealth">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- 引入外部賽博科技字型與 FontAwesome 微光圖示庫 -->
+    <link rel="stylesheet" href="https://googleapis.com">
+    <link rel="stylesheet" href="https://cloudflare.com">
+    
+    <style>
+        /* 賽博空間純黑底霓虹調色盤 */
+        :root {
+            --bg-color: #000000;
+            --neon-purple: #bd00ff;
+            --neon-blue: #00d2ff;
+            --neon-cyan: #00f6ff;
+            --neon-red: #ff0055;
+            --neon-orange: #ff9900;
+            --neon-green: #39ff14;
+            --card-bg: rgba(10, 10, 12, 0.85);
+            --border-glow: rgba(189, 0, 255, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* iOS 專屬橫向三大滑動視區滑軌 */
+        .app-container {
+            width: 300%;
+            height: 100%;
+            display: flex;
+            transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+        }
+
+        .page {
+            width: 33.3333%;
+            height: 100%;
+            padding: calc(60px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+        /* 3. 頂部固定控制列 */
+        .header-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: calc(50px + env(safe-area-inset-top));
+            padding-top: env(safe-area-inset-top);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+            z-index: 1000;
+        }
+
+        .neon-btn {
+            background: none;
+            border: none;
+            color: var(--neon-cyan);
+            font-size: 20px;
+            cursor: pointer;
+            text-shadow: 0 0 10px var(--neon-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .neon-btn:active {
+            transform: scale(0.9);
+            color: #ffffff;
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .header-center {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .header-right-toggle {
+            background: rgba(20, 20, 25, 0.8);
+            border: 1px solid var(--neon-purple);
+            box-shadow: 0 0 8px var(--border-glow);
+            border-radius: 20px;
+            display: flex;
+            padding: 2px;
+            width: 75px;
+        }
+
+        .toggle-tab {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            padding: 4px 0;
+            border-radius: 15px;
+            color: #888;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-tab.active {
+            color: #ffffff;
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* 4. 總資產發光大字 */
+        .asset-showcase {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 25px;
+        }
+
+        .asset-title {
+            font-size: 13px;
+            color: #888899;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .asset-amount {
+            font-size: 40px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px var(--neon-cyan);
+            margin-top: 5px;
+            letter-spacing: -1px;
+            cursor: pointer;
+        }
+
+        /* 5. 支出環狀光軌圓餅圖 */
+        .chart-box {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px auto;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .neon-ring-svg {
+            transform: rotate(-90deg);
+        }
+
+        .chart-center-info {
+            position: absolute;
+            text-align: center;
+        }
+
+        .chart-center-info .label {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .chart-center-info .val {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--neon-purple);
+            text-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* 6. iPhone 3D 磨砂流體計畫瓶 */
+        .fluid-project-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .fluid-bottle {
+            flex: 1;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(255,255,255,0.05), 0 0 15px rgba(0,0,0,0.5);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .bottle-glow-blue { border-color: rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.1); }
+        .bottle-glow-red { border-color: rgba(255, 0, 85, 0.3); box-shadow: 0 0 15px rgba(255, 0, 85, 0.1); }
+        .bottle-alert-pulse { animation: alertPulse 1.5s infinite alternate; }
+
+        @keyframes alertPulse {
+            0% { border-color: rgba(255, 153, 0, 0.3); box-shadow: 0 0 10px rgba(255, 153, 0, 0.2); }
+            100% { border-color: var(--neon-orange); box-shadow: 0 0 25px var(--neon-orange); }
+        }
+
+        .fluid-wave {
+            width: 200%;
+            height: 100%;
+            position: absolute;
+            left: -50%;
+            bottom: 0;
+            border-radius: 38%;
+            transition: top 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform, top;
+        }
+
+        .wave-blue {
+            background: linear-gradient(0deg, rgba(0,180,255,0.75) 0%, rgba(0,246,255,0.4) 100%);
+            animation: waveRotate 4s linear infinite;
+        }
+
+        .wave-red {
+            background: linear-gradient(0deg, rgba(200,0,50,0.75) 0%, rgba(255,0,85,0.4) 100%);
+            animation: waveRotate 4.5s linear infinite;
+        }
+
+        @keyframes waveRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .bottle-content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .bottle-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #aaa;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .bottle-metrics {
+            font-size: 14px;
+            font-weight: 900;
+            margin-top: 4px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+        }
+
+        .bottle-rescue-btn {
+            background: var(--neon-orange);
+            color: #000;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 900;
+            margin-top: 8px;
+            box-shadow: 0 0 12px var(--neon-orange);
+            cursor: pointer;
+            display: none;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        /* 7. 右下角記帳懸浮鈕 */
+        .fab-btn {
+            position: fixed;
+            bottom: calc(25px + env(safe-area-inset-bottom));
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, #0088ff 100%);
+            border: none;
+            color: #000000;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px rgba(0, 246, 255, 0.3);
+            z-index: 999;
+            cursor: pointer;
+        }
+
+        .fab-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+        /* ==================== 核心元件二：CSS 擴充樣式 ==================== */
+        .card-container { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; }
+        .cyber-card { background: var(--card-bg); border: 1px solid rgba(189, 0, 255, 0.25); box-shadow: 0 0 15px rgba(189, 0, 255, 0.05), inset 0 0 10px rgba(189,0,255,0.05); border-radius: 20px; padding: 18px; position: relative; transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .card-title-group { display: flex; align-items: center; gap: 12px; }
+        .card-icon { font-size: 18px; color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+        .card-name { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+        .card-amount-display { font-size: 18px; font-weight: 900; text-shadow: 0 0 10px rgba(255,255,255,0.3); transition: all 0.3s ease; }
+        .card-mask-text { color: #444455; text-shadow: none; letter-spacing: 2px; }
+        .card-details { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease; margin-top: 0; border-top: 1px dashed rgba(255,255,255,0); padding-top: 0; }
+        .cyber-card.expanded { border-color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 246, 255, 0.15); }
+        .cyber-card.expanded .card-details { max-height: 300px; opacity: 1; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; overflow-y: auto; }
+        .wallet-card-life { cursor: pointer; position: relative; }
+        .wallet-sub-val { font-size: 11px; color: #666677; margin-top: 4px; transition: all 0.2s ease; }
+        .wallet-card-life.pressed { transform: scale(0.97); border-color: var(--neon-purple); box-shadow: 0 0 30px var(--neon-purple); }
+        .wallet-card-life.pressed .card-amount-display { font-size: 26px; color: var(--neon-purple); text-shadow: 0 0 15px var(--neon-purple); }
+        .blur-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+        .blur-overlay.active { opacity: 1; pointer-events: auto; }
+        .carousel-container { width: 100%; max-width: 320px; perspective: 1000px; text-align: center; }
+        .carousel-title { font-size: 16px; color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); margin-bottom: 20px; font-weight: 700; }
+        .rescue-card-wrapper { width: 100%; height: 350px; position: relative; transform-style: preserve-3d; transition: transform 0.4s ease; }
+        .rescue-card { position: absolute; width: 100%; height: 100%; top: 0; left: 0; background: rgba(15, 15, 20, 0.95); border: 2px solid var(--neon-red); box-shadow: 0 0 25px rgba(255, 0, 85, 0.2); border-radius: 25px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; backface-visibility: hidden; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .rescue-card.hidden-left { transform: translateX(-100%) scale(0.85); opacity: 0; pointer-events: none; }
+        .rescue-card.hidden-right { transform: translateX(100%) scale(0.85); opacity: 0; pointer-events: none; }
+        .rescue-card.active-center { transform: translateX(0) scale(1); opacity: 1; pointer-events: auto; }
+        .rescue-card.back-view { transform: rotateY(180deg); }
+        .card-face-front, .card-face-back { position: absolute; width: 100%; height: 100%; top: 0; left: 0; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; backface-visibility: hidden; }
+        .card-face-back { transform: rotateY(180deg); }
+        .cyber-input { width: 100%; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--neon-cyan); border-radius: 12px; padding: 12px; color: #ffffff; font-family: inherit; font-size: 14px; outline: none; margin-top: 8px; box-shadow: inset 0 0 8px rgba(0,246,255,0.1); }
+        .cyber-input:focus { box-shadow: 0 0 12px var(--neon-cyan), inset 0 0 8px rgba(0,246,255,0.2); }
+        .cyber-btn-rect { width: 100%; background: linear-gradient(135deg, var(--neon-red) 0%, #aa0033 100%); border: none; padding: 14px; border-radius: 15px; color: #ffffff; font-weight: 700; font-size: 15px; letter-spacing: 1px; box-shadow: 0 0 15px var(--neon-red); cursor: pointer; }
+        .cyber-btn-rect:active { transform: scale(0.97); box-shadow: 0 0 5px var(--neon-red); }
+        .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 15px; }
+        .dot { width: 8px; height: 8px; border-radius: 4px; background: #333344; transition: all 0.3s ease; }
+        .dot.active { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); width: 18px; }
+    </style>
+</head>
+<body>
+    <!-- 固定頂部控制列 -->
+    <div class="header-bar">
+        <button class="neon-btn" id="btn-settings"><i class="fa-solid fa-bars"></i></button>
+        <div class="header-center" id="btn-month-picker"><span id="display-date-text">2026年6月</span> <i class="fa-solid fa-caret-down" style="font-size: 12px; color: var(--neon-purple);"></i></div>
+        <div class="header-right-toggle"><div class="toggle-tab active" id="toggle-month">月</div><div class="toggle-tab" id="toggle-all">全部</div></div>
+    </div>
+    
+    <!-- 右下角懸浮記帳鈕 -->
+    <button class="fab-btn" id="btn-fab-add"><i class="fa-solid fa-plus"></i></button>
+
+    <!-- 橫向滑動三大視區容器 -->
+    <div class="app-container" id="main-slider">
+        <!-- 【左滑頁面：資產功能錢包】 -->
+        <div class="page" id="page-wallets">
+            <div class="asset-showcase"><div class="asset-title">錢包總資產</div><div class="asset-amount global-asset-val">$0</div></div>
+            <div class="card-container">
+                <div class="cyber-card wallet-card-life" id="wallet-life">
+                    <div class="card-header">
+                        <div class="card-title-group"><i class="fa-solid fa-bag-shopping card-icon" style="color: var(--neon-purple); text-shadow:0 0 8px var(--neon-purple);"></i><div class="card-name">生活錢包 (中信)</div></div>
+                        <div class="card-amount-display" id="val-wallet-life-main">$0</div>
+                    </div>
+                    <div class="wallet-sub-val" id="val-wallet-life-sub">當月剩餘: $15,000</div>
+                </div>
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <div class="card-title-group"><i class="fa-solid fa-vault card-icon" style="color: #e0aaff; text-shadow:0 0 8px #e0aaff;"></i><div class="card-name">存款 / 旅遊錢包</div></div>
+                        <div class="card-amount-display" id="val-wallet-save">$0</div>
+                    </div>
+                </div>
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <div class="card-title-group"><i class="fa-solid fa-chart-line card-icon" style="color: #9d4edd; text-shadow:0 0 8px #9d4edd;"></i><div class="card-name">投資錢包 (元大)</div></div>
+                        <div style="text-align: right;"><div class="card-name" id="val-invest-cost" style="font-size:12px; color:#aaa;">投入成本: $0</div><div class="card-name" id="val-invest-profit" style="font-size:12px; color:var(--neon-cyan); margin-top:2px;">已回收獲利: $0</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 【中央主頁：財富核心看板】 -->
+        <div class="page" id="page-main">
+            <div class="asset-showcase"><div class="asset-title">目前總資產</div><div class="asset-amount global-asset-val" id="click-trigger-to-bank">$0</div></div>
+            <div class="chart-box" id="click-trigger-to-chart">
+                <svg class="neon-ring-svg" width="200" height="200">
+                    <circle cx="100" cy="100" r="85" stroke="#111115" stroke-width="12" fill="transparent"/>
+                    <circle id="neon-ring-track" cx="100" cy="100" r="85" stroke="url(#neonPurpleGlow)" stroke-width="12" fill="transparent" stroke-dasharray="534" stroke-dashoffset="534" stroke-linecap="round" style="transition: stroke-dashoffset 0.5s ease; filter: drop-shadow(0 0 8px var(--neon-purple));"/>
+                    <defs><linearGradient id="neonPurpleGlow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#bd00ff" /><stop offset="100%" stop-color="#7000ff" /></linearGradient></defs>
+                </svg>
+                <div class="chart-center-info"><div class="label">當月外輸出</div><div class="val" id="val-month-expense">$0</div></div>
+            </div>
+            <div class="fluid-project-container">
+                <div class="fluid-bottle bottle-glow-blue" id="bottle-save"><div class="fluid-wave wave-blue" id="wave-save-fluid" style="top: 100%;"></div><div class="bottle-content"><div class="bottle-title">強制儲蓄</div><div class="bottle-metrics" id="txt-bottle-save">$0</div></div></div>
+                <div class="fluid-bottle bottle-glow-red" id="bottle-travel"><div class="fluid-wave wave-red" id="wave-travel-fluid" style="top: 100%;"></div><div class="bottle-content"><div class="bottle-title" id="txt-travel-title">無旅遊計畫</div><div class="bottle-metrics" id="txt-bottle-travel">$0</div><button class="bottle-rescue-btn" id="btn-bottle-rescue">錢不夠了，借一點借一點 💸</button></div></div>
+            </div>
+        </div>
+
+        <!-- 【右滑頁面：預設銀行帳戶】 -->
+        <div class="page" id="page-banks">
+            <div class="asset-showcase"><div class="asset-title">全銀行總額</div><div class="asset-amount global-asset-val">$0</div></div>
+            <div class="card-container" id="bank-cards-list">
+                <div class="cyber-card" data-bank="台灣企銀"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-building-columns card-icon"></i><div class="card-name">台灣企銀 (發薪中心)</div></div><div class="card-amount-display" id="val-bank-tbb">$0</div></div><div class="card-details"><p style="font-size:12px; color:#888;"><i class="fa-solid fa-phone" style="margin-right:5px;"></i> 中華電信費: 每月固定自動扣繳 $1,100</p><p style="font-size:12px; color:#888; margin-top:5px;"><i class="fa-solid fa-arrows-spin" style="margin-right:5px;"></i> 月初5號發薪自動執行五大固定分流</p></div></div>
+                <div class="cyber-card" data-bank="中國信託"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-wallet card-icon"></i><div class="card-name">中國信託 (隨身錢包)</div></div><div class="card-amount-display" id="val-bank-ctbc">$0</div></div><div class="card-details"><p style="font-size:12px; color:#888;"><i class="fa-solid fa-utensils" style="margin-right:5px;"></i> 所有個人浮動開銷飲食皆從此處外輸出扣繳</p></div></div>
+                <div class="cyber-card" data-bank="台中銀行"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-piggy-bank card-icon"></i><div class="card-name">台中銀行 (金庫)</div></div><div class="card-amount-display" id="val-bank-tcbb">$0</div></div><div class="card-details"><p style="font-size:12px; color:#888;"><i class="fa-solid fa-house-chimney-user" style="margin-right:5px;"></i> 租屋補助指定外輸入對口 | 鎖死唯入不出</p></div></div>
+                <div class="cyber-card" data-bank="臺灣銀行"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-graduation-cap card-icon"></i><div class="card-name">臺灣銀行 (學貸對口)</div></div><div class="card-amount-display" id="val-bank-bot">$0</div></div><div class="card-details"><p style="font-size:12px; color:#ff0055; text-shadow:0 0 5px rgba(255,0,85,0.2); font-weight:700;"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i> 學貸專欄面板</p><p style="font-size:12px; color:#888; margin-top:4px;">每期應繳: $2,361 元 | 固定安全墊片: $2,400 元</p></div></div>
+                <div class="cyber-card"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-user-group card-icon" style="color:#444455; text-shadow:none;"></i><div class="card-name" style="color:#aaa;">LINE BANK (女友共同公帳)</div></div><div class="card-amount-display card-mask-text">[- - -]</div></div><div class="card-details"><p style="font-size:12px; color:#888;"><i class="fa-solid fa-lock" style="margin-right:5px;"></i> 共同財產隱私保護，不顯示餘額。負責共同房租水電支出。</p></div></div>
+                <div class="cyber-card" id="card-bank-yuanta"><div class="card-header"><div class="card-title-group"><i class="fa-solid fa-arrow-trend-up card-icon" style="color:#444455; text-shadow:none;"></i><div class="card-name" style="color:#aaa;">元大銀行 (證券交割罐)</div></div><div class="card-amount-display card-mask-text" id="txt-yuanta-mask">[- - -]</div></div><div class="card-details"><p style="font-size:12px; color:#888;"><i class="fa-solid fa-hand-holding-dollar" style="margin-right:5px;"></i> 定期定額與非固定股票投資交割扣繳專屬通道。</p></div></div>
+            </div>
+        </div>
+    </div>
+    <!-- 4選1日常超標攔截橫向滑動面板 -->
+    <div class="blur-overlay" id="rescue-panel-overlay">
+        <div class="carousel-container">
+            <div class="carousel-title"><i class="fa-solid fa-triangle-exclamation"></i> 警告：中信生活費帳務超標！</div>
+            <div class="rescue-card-wrapper" id="rescue-cards-stack">
+                
+                <!-- 方案 A -->
+                <div class="rescue-card active-center" data-index="0" id="card-rescue-tbb">
+                    <div class="card-face-front">
+                        <i class="fa-solid fa-building-columns" style="font-size:45px; color:var(--neon-cyan); text-shadow:0 0 15px var(--neon-cyan);"></i>
+                        <h3 style="margin-top:15px; font-weight:700;">方案 A: 調撥台企銀活用金</h3>
+                        <p style="font-size:12px; color:#888; text-align:center; padding:0 10px; margin-top:10px;">由分流發電廠手動免手續費提撥支援。<br><span id="txt-rescue-tbb-status" style="color:var(--neon-green);">[安全防禦線: 正常]</span></p>
+                        <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-cyan) 0%, #0055aa 100%); box-shadow:0 0 15px var(--neon-cyan); color:#000;" id="btn-execute-rescue-tbb">確認全自動調撥</button>
+                    </div>
+                </div>
+
+                <!-- 方案 B -->
+                <div class="rescue-card hidden-right" data-index="1">
+                    <div class="card-face-front">
+                        <i class="fa-solid fa-piggy-bank" style="font-size:45px; color:var(--neon-purple); text-shadow:0 0 15px var(--neon-purple);"></i>
+                        <h3 style="margin-top:15px; font-weight:700;">方案 B: 提撥台中銀儲蓄金</h3>
+                        <p style="font-size:12px; color:#888; text-align:center; padding:0 10px; margin-top:10px;">動用歷史大金庫。實體需至 ATM 領現存入中國信託以補足實體金額缺口。</p>
+                        <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-purple) 0%, #5500aa 100%); box-shadow:0 0 15px var(--neon-purple);" id="btn-execute-rescue-tcbb">確認提領大金庫</button>
+                    </div>
+                </div>
+
+                <!-- 方案 C -->
+                <div class="rescue-card hidden-right" data-index="2">
+                    <div class="card-face-front">
+                        <i class="fa-solid fa-arrow-trend-up" style="font-size:45px; color:var(--neon-orange); text-shadow:0 0 15px var(--neon-orange);"></i>
+                        <h3 style="margin-top:15px; font-weight:700;">方案 C: 元大投資證券變現</h3>
+                        <p style="font-size:12px; color:#888; text-align:center; padding:0 10px; margin-top:10px;">在元大證券執行股票贖回賣出。<br><span style="color:var(--neon-orange);">⚠️ 注意：資金進入 T+2 日交割凍結期</span></p>
+                        <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-orange) 0%, #aa5500 100%); box-shadow:0 0 15px var(--neon-orange);" id="btn-execute-rescue-yuanta">確認賣出證券</button>
+                    </div>
+                </div>
+
+                <!-- 方案 D -->
+                <div class="rescue-card hidden-right" data-index="3">
+                    <div class="card-face-front">
+                        <i class="fa-solid fa-hand-holding-dollar" style="font-size:45px; color:var(--neon-red); text-shadow:0 0 15px var(--neon-red);"></i>
+                        <h3 style="margin-top:15px; font-weight:700;">方案 D: 啟動透支外借機制</h3>
+                        <p style="font-size:12px; color:#888; text-align:center; padding:0 10px; margin-top:10px;">向未來的自己或他人預支。中信可用餘額將變為負數，並在下月5號自動優先扣除。</p>
+                        <button class="cyber-btn-rect" id="btn-flip-to-loan-form">填寫借貸對口表單</button>
+                    </div>
+                    <div class="card-face-back">
+                        <h3 style="font-weight:700; color:var(--neon-cyan);">📋 建立強制借貸契約</h3>
+                        <div style="width:100%; text-align:left; margin-top:10px;">
+                            <label style="font-size:11px; color:#aaa;">請確認超標借款金額</label>
+                            <input type="number" class="cyber-input" id="input-loan-amount" placeholder="金額">
+                        </div>
+                        <div style="display:flex; gap:10px; width:100%; margin-top:15px;">
+                            <button class="cyber-btn-rect" style="background:#222; box-shadow:none; font-size:13px; padding:10px;" id="btn-flip-back-loan">返回</button>
+                            <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-green) 0%, #11aa00 100%); box-shadow:0 0 15px var(--neon-green); color:#000; font-size:13px; padding:10px;" id="btn-execute-rescue-loan">確認契約簽署</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="carousel-dots">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 1. 新增收支彈窗表單 -->
+    <div class="blur-overlay" id="overlay-add-log" style="z-index: 1500;">
+        <div style="background: rgba(10,10,15,0.95); border: 1px solid var(--neon-cyan); box-shadow: 0 0 25px rgba(0,246,255,0.2); width: 85%; max-width: 320px; padding: 25px; border-radius: 20px;">
+            <h3 style="font-weight:700; color:var(--neon-cyan); text-align:center; margin-bottom:15px;"><i class="fa-solid fa-pen-to-square"></i> 新增核心記帳</h3>
+            <label style="font-size:11px; color:#aaa;">選擇扣款或進帳帳戶</label>
+            <select class="cyber-input" id="form-log-account" style="background:#000;">
+                <option value="台灣企銀">台灣企銀</option>
+                <option value="中國信託">中國信託</option>
+                <option value="台中銀行">台中銀行</option>
+                <option value="臺灣銀行">臺灣銀行</option>
+            </select>
+            <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">流向類別</label>
+            <select class="cyber-input" id="form-log-type" style="background:#000;">
+                <option value="[外輸出・日常開銷]">[外輸出] 真正給外界的開銷</option>
+                <option value="[外輸入・其他]">[外輸入] 外界給我的錢</option>
+                <option value="[內輸出・內部轉移]">[內輸出] 自己轉給其他銀行</option>
+                <option value="[內輸入・內部接收]">[內輸入] 其他銀行轉進來的錢</option>
+            </select>
+            <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">消費金額</label>
+            <input type="number" class="cyber-input" id="form-log-amount" placeholder="NT$">
+            <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">消費分類標籤 (如: 晚餐、菸、酒)</label>
+            <input type="text" class="cyber-input" id="form-log-label" placeholder="項目明細">
+            <label style="font-size:11px; color:#aaa; margin-top:10px; display:block;">綁定消費計畫瓶 (選填)</label>
+            <select class="cyber-input" id="form-log-project" style="background:#000;">
+                <option value="">無特定關聯計畫</option>
+            </select>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="cyber-btn-rect" style="background:#222; box-shadow:none; padding:10px;" id="btn-close-log-form">取消</button>
+                <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-cyan) 0%, #0055aa 100%); box-shadow:0 0 15px var(--neon-cyan); color:#000; padding:10px;" id="btn-save-log-form">確認記帳</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 月初分流待辦與設定控制台 -->
+    <div class="blur-overlay" id="overlay-settings" style="z-index: 1800;">
+        <div style="background: rgba(10,10,15,0.98); border: 1px solid var(--neon-purple); box-shadow: 0 0 25px rgba(189,0,255,0.2); width: 90%; max-width: 340px; padding: 20px; border-radius: 20px; max-height:85%; overflow-y:auto;">
+            <h3 style="font-weight:700; color:var(--neon-purple); text-align:center; margin-bottom:15px;"><i class="fa-solid fa-gears"></i> ☰ 理財核心控制台</h3>
+            
+            <div id="check-list-zone" style="background:rgba(255,255,255,0.03); border:1px solid rgba(189,0,255,0.2); padding:15px; border-radius:15px; margin-bottom:15px;">
+                <p style="font-size:12px; color:var(--neon-cyan); font-weight:700; margin-bottom:10px;"><i class="fa-solid fa-bell"></i> 5號發薪固定分流檢核清單</p>
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:13px;" id="todo-list-dom">
+                    <!-- JavaScript 動態渲染打勾清單 -->
+                </div>
+                <button class="cyber-btn-rect" style="background:linear-gradient(135deg, var(--neon-green) 0%, #11aa00 100%); box-shadow:0 0 12px var(--neon-green); color:#000; font-size:12px; padding:8px; margin-top:12px; width:100%;" id="btn-todo-all-check">⚡ 一鍵全部確認打勾</button>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); padding:15px; border-radius:15px; margin-bottom:15px;">
+                <p style="font-size:12px; color:#aaa; font-weight:700; margin-bottom:8px;"><i class="fa-solid fa-folder-plus"></i> 新增主頁流體計畫瓶</p>
+                <input type="text" class="cyber-input" id="form-p-name" placeholder="計畫名稱 (如: 墾丁旅遊)">
+                <select class="cyber-input" id="form-p-type" style="background:#000; margin-top:8px;">
+                    <option value="儲蓄計畫">🔵 建立儲蓄計畫瓶 (存錢金庫)</option>
+                    <option value="消費計畫">🔴 建立消費計畫瓶 (旅遊專案)</option>
+                </select>
+                <input type="number" class="cyber-input" id="form-p-target" placeholder="目標預算金額 NT$" style="margin-top:8px;">
+                <button class="cyber-btn-rect" style="background:var(--neon-purple); font-size:13px; padding:10px; margin-top:10px;" id="btn-save-project">確認新增立體計畫</button>
+            </div>
+
+            <button class="cyber-btn-rect" style="background:#222; box-shadow:none; padding:10px; font-size:13px; margin-bottom:10px;" id="btn-close-settings">關閉控制台</button>
+            <button class="cyber-btn-rect" style="background:linear-gradient(135deg, #444 0%, #111 100%); box-shadow:0 0 10px rgba(255,0,0,0.2); border:1px solid var(--neon-red); font-size:13px; padding:10px;" id="btn-system-reset">🔄 長按 3 秒還原重製系統</button>
+        </div>
+    </div>
+
+    <!-- ==================== 核心功能神經網路 JavaScript ==================== -->
+    <script>
+        // 🛠️ 填寫提示：請在下方雙引號內貼上你長長的 Google Apps Script API 網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbwEgGqEJFilSSD6xF76Ha5_2nF9Z0DicP3HLq7u9kgyDJ_2FNCUbBXZfkEm-bCoIakm/exec";
+        
+        let appState = {
+            currentTab: 1, 
+            timeMode: "month", 
+            lifeWalletView: "total", 
+            balances: {},
+            projects: [],
+            logs: [],
+            debts: [],
+            monthlyBudgetLimit: 15000,
+            activeRescueIdx: 0
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initSliderTouch();
+            initLongPressGesture();
+            initRescueCarousel();
+            bindStaticUiEvents();
+            refreshCloudData();
+        });
+
+        function refreshCloudData() {
+            if (API_URL === "https://script.google.com/macros/s/AKfycbwEgGqEJFilSSD6xF76Ha5_2nF9Z0DicP3HLq7u9kgyDJ_2FNCUbBXZfkEm-bCoIakm/exec" || !API_URL) return;
+            fetch(`${API_URL}?action=readAll`)
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === "success") {
+                        appState.balances = parseBalances(res.data.balances);
+                        appState.projects = res.data.projects;
+                        appState.logs = res.data.logs;
+                        appState.debts = res.data.debts;
+                        renderUiCore();
+                        updateProjectSelectOptions();
+                    }
+                }).catch(err => console.error("雲端連線失敗:", err));
+        }
+
+        function parseBalances(raw) {
+            let dict = {};
+            raw.forEach(item => { dict[item["帳戶名稱"]] = parseFloat(item["當前餘額"]) || 0; });
+            return dict;
+        }
+
+        function updateProjectSelectOptions() {
+            const select = document.getElementById("form-log-project");
+            select.innerHTML = '<option value="">無特定關聯計畫</option>';
+            appState.projects.forEach(p => {
+                if(p["狀態"] === "進行中") {
+                    select.innerHTML += `<option value="${p["計畫名稱"]}">${p["計畫類型"] === "儲蓄計畫" ? "🔵" : "🔴"} ${p["計畫名稱"]}</option>`;
+                }
+            });
+        }
+        // ==================== 核心元件五：JavaScript 邏輯收網 ====================
+        // 1. UI 渲染引擎與遮罩邏輯
+        function renderUiCore() {
+            const tbb = appState.balances["台灣企銀"] || 0;
+            const ctbc = appState.balances["中國信託"] || 0;
+            const tcbb = appState.balances["台中銀行"] || 0;
+            const bot = appState.balances["臺灣銀行"] || 0;
+
+            const totalAsset = tbb + ctbc + tcbb + bot;
+            document.querySelectorAll(".global-asset-val").forEach(el => {
+                el.innerText = `$${totalAsset.toLocaleString()}`;
+            });
+
+            document.getElementById("val-bank-tbb").innerText = `$${tbb.toLocaleString()}`;
+            document.getElementById("val-bank-ctbc").innerText = `$${ctbc.toLocaleString()}`;
+            document.getElementById("val-bank-tcbb").innerText = `$${tcbb.toLocaleString()}`;
+            document.getElementById("val-bank-bot").innerText = `$${bot.toLocaleString()}`;
+
+            document.getElementById("val-wallet-save").innerText = `$${tcbb.toLocaleString()}`;
+            updateLifeWalletDisplay();
+
+            let investCost = 0;
+            let realizedProfit = 0;
+            appState.logs.forEach(log => {
+                let amt = parseFloat(log["金額"]) || 0;
+                let cType = log["流向分類"] || "";
+                if(cType.indexOf("定期定額") > -1 || cType.indexOf("加碼投資") > -1) investCost += amt;
+                if(cType.indexOf("投資回收") > -1) realizedProfit += amt;
+            });
+            document.getElementById("val-invest-cost").innerText = `投入成本: $${investCost.toLocaleString()}`;
+            document.getElementById("val-invest-profit").innerText = `已回收獲利: $${realizedProfit.toLocaleString()}`;
+
+            let currentMonthExpense = 0;
+            appState.logs.forEach(log => {
+                if(log["流向分類"] && log["流向分類"].indexOf("外輸出") > -1) {
+                    currentMonthExpense += parseFloat(log["金額"]) || 0;
+                }
+            });
+            document.getElementById("val-month-expense").innerText = `$${currentMonthExpense.toLocaleString()}`;
+            
+            const ringTrack = document.getElementById("neon-ring-track");
+            let ratio = currentMonthExpense / 30000; 
+            if(ratio > 1) ratio = 1;
+            ringTrack.style.strokeDashoffset = 534 - (534 * ratio);
+
+            renderFluidBottles();
+            renderTodoList();
+        }
+
+        function updateLifeWalletDisplay() {
+            const ctbcTotal = appState.balances["中國信託"] || 0;
+            let currentMonthSpent = 0;
+            appState.logs.forEach(log => {
+                if(log["帳戶"] === "中國信託" && log["流向分類"] && log["流向分類"].indexOf("外輸出") > -1) {
+                    currentMonthSpent += parseFloat(log["金額"]) || 0;
+                }
+            });
+            const monthLeft = appState.monthlyBudgetLimit - currentMonthSpent;
+
+            const mainEl = document.getElementById("val-wallet-life-main");
+            const subEl = document.getElementById("val-wallet-life-sub");
+
+            if(appState.lifeWalletView === "total") {
+                mainEl.innerText = `$${ctbcTotal.toLocaleString()}`;
+                subEl.innerText = `當月可用餘額: $${monthLeft.toLocaleString()}`;
+            } else {
+                mainEl.innerText = `$${monthLeft.toLocaleString()}`;
+                subEl.innerText = `總共保底餘額: $${ctbcTotal.toLocaleString()}`;
+            }
+        }
+
+        // 2. 3D 立體能量瓶感應渲染
+        function renderFluidBottles() {
+            let activeSave = appState.projects.find(p => p["計畫類型"] === "儲蓄計畫" && p["狀態"] === "進行中");
+            let activeTravel = appState.projects.find(p => p["計畫類型"] === "消費計畫" && p["狀態"] === "進行中");
+
+            if(activeSave) {
+                let cur = parseFloat(activeSave["當前金額"]) || 0;
+                let tar = parseFloat(activeSave["目標金額"]) || 1;
+                let pct = (cur / tar) * 100;
+                if(pct > 100) pct = 100;
+                document.getElementById("wave-save-fluid").style.top = `${100 - pct}%`;
+                document.getElementById("txt-bottle-save").innerText = `$${cur.toLocaleString()} / $${tar.toLocaleString()}`;
+            } else {
+                document.getElementById("wave-save-fluid").style.top = "100%";
+                document.getElementById("txt-bottle-save").innerText = "未啟動儲蓄";
+            }
+
+            const travelTitle = document.getElementById("txt-travel-title");
+            const travelMetrics = document.getElementById("txt-bottle-travel");
+            const travelFluid = document.getElementById("wave-travel-fluid");
+            const travelBottle = document.getElementById("bottle-travel");
+            const rescueBtn = document.getElementById("btn-bottle-rescue");
+
+            if(activeTravel) {
+                let cur = parseFloat(activeTravel["當前金額"]) || 0;
+                let tar = parseFloat(activeTravel["目標金額"]) || 1;
+                travelTitle.innerText = activeTravel["計畫名稱"];
+                travelMetrics.innerText = `可用: $${cur.toLocaleString()}`;
+                
+                let pct = (cur / tar) * 100;
+                if(pct < 0) pct = 0;
+                travelFluid.style.top = `${100 - pct}%`;
+
+                if(cur <= 0) {
+                    travelBottle.classList.add("bottle-alert-pulse");
+                    rescueBtn.style.display = "block";
+                } else {
+                    travelBottle.classList.remove("bottle-alert-pulse");
+                    rescueBtn.style.display = "none";
+                }
+            } else {
+                travelTitle.innerText = "無進行中計畫";
+                travelMetrics.innerText = "$0";
+                travelFluid.style.top = "100%";
+                travelBottle.classList.remove("bottle-alert-pulse");
+                rescueBtn.style.display = "none";
+            }
+        }
+        // 3. iOS 橡皮筋滑動與長按手勢監聽
+        function initSliderTouch() {
+            const slider = document.getElementById("main-slider");
+            let startX = 0, currentX = 0, isDragging = false;
+
+            window.addEventListener("touchstart", (e) => {
+                if(e.target.closest(".blur-overlay") || e.target.closest(".card-details")) return;
+                startX = e.touches.clientX;
+                isDragging = true;
+                slider.style.transition = "none";
+            });
+
+            window.addEventListener("touchmove", (e) => {
+                if(!isDragging) return;
+                currentX = e.touches.clientX;
+                let diff = currentX - startX;
+                let baseTransform = -appState.currentTab * (window.innerWidth);
+                slider.style.transform = `translateX(${baseTransform + diff}px)`;
+            });
+
+            window.addEventListener("touchend", (e) => {
+                if(!isDragging) return;
+                isDragging = false;
+                slider.style.transition = "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
+                let diff = currentX - startX;
+
+                if(Math.abs(diff) > window.innerWidth / 5) {
+                    if(diff > 0 && appState.currentTab > 0) appState.currentTab--;
+                    else if(diff < 0 && appState.currentTab < 2) appState.currentTab++;
+                }
+                slider.style.transform = `translateX(${-appState.currentTab * window.innerWidth}px)`;
+            });
+        }
+
+        function initLongPressGesture() {
+            const lifeCard = document.getElementById("wallet-life");
+            let pressTimer;
+
+            lifeCard.addEventListener("touchstart", () => {
+                pressTimer = setTimeout(() => {
+                    lifeCard.classList.add("pressed");
+                    appState.lifeWalletView = "month";
+                    updateLifeWalletDisplay();
+                }, 400);
+            });
+
+            lifeCard.addEventListener("touchend", () => {
+                clearTimeout(pressTimer);
+                if(lifeCard.classList.contains("pressed")) {
+                    lifeCard.classList.remove("pressed");
+                    appState.lifeWalletView = "total";
+                    updateLifeWalletDisplay();
+                }
+            });
+        }
+        function initRescueCarousel() {
+            const overlay = document.getElementById("rescue-panel-overlay");
+            let touchStartX = 0;
+
+            overlay.addEventListener("touchstart", (e) => {
+                touchStartX = e.touches.clientX;
+            });
+
+            overlay.addEventListener("touchend", (e) => {
+                let diff = e.changedTouches.clientX - touchStartX;
+                if(Math.abs(diff) > 60) {
+                    if(diff < 0 && appState.activeRescueIdx < 3) appState.activeRescueIdx++;
+                    if(diff > 0 && appState.activeRescueIdx > 0) appState.activeRescueIdx--;
+                    switchRescueCard();
+                }
+            });
+        }
+
+        function switchRescueCard() {
+            const cards = document.querySelectorAll("#rescue-cards-stack .rescue-card");
+            const dots = document.querySelectorAll(".carousel-dots .dot");
+            
+            cards.forEach((card, i) => {
+                card.className = "rescue-card";
+                if(i === appState.activeRescueIdx) card.classList.add("active-center");
+                else if(i < appState.activeRescueIdx) card.classList.add("hidden-left");
+                else card.classList.add("hidden-right");
+            });
+
+            dots.forEach((dot, i) => {
+                if(i === appState.activeRescueIdx) dot.classList.add("active-center", "active");
+                else dot.className = "dot";
+            });
+        }
+
+        function renderTodoList() {
+            const items = [
+                {id:"t1", text:"確認公司薪資已足額外輸入至台企銀"},
+                {id:"t2", text:"轉出 $2,400 至 臺灣銀行 (學貸準備金)"},
+                {id:"t3", text:"轉出 $10,000 至 LINE BANK (共同公帳)"},
+                {id:"t4", text:"轉出 $15,000 至 中國信託 (隨身生活費)"},
+                {id:"t5", text:"轉出 $4,000 至 元大銀行 (最高死線投資款)"}
+            ];
+            
+            const dom = document.getElementById("todo-list-dom");
+            dom.innerHTML = "";
+            items.forEach(item => {
+                dom.innerHTML += `
+                    <label style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.4); padding:10px; border-radius:10px;">
+                        <input type="checkbox" class="todo-check-box" id="${item.id}" style="accent-color:var(--neon-purple); width:16px; height:16px;">
+                        <span>${item.text}</span>
+                    </label>
+                `;
+            });
+        }
+
+        function bindStaticUiEvents() {
+            document.getElementById("click-trigger-to-bank").addEventListener("click", () => {
+                appState.currentTab = 2;
+                document.getElementById("main-slider").style.transform = `translateX(${-2 * window.innerWidth}px)`;
+            });
+
+            document.querySelectorAll("#bank-cards-list .cyber-card").forEach(card => {
+                if(card.querySelector(".card-header")) {
+                    card.querySelector(".card-header").addEventListener("click", () => {
+                        let wasExpanded = card.classList.contains("expanded");
+                        document.querySelectorAll("#bank-cards-list .cyber-card").forEach(c => c.classList.remove("expanded"));
+                        if(!wasExpanded) card.classList.add("expanded");
+                    });
+                }
+            });
+
+            document.getElementById("btn-fab-add").addEventListener("click", () => {
+                document.getElementById("overlay-add-log").classList.add("active");
+            });
+            document.getElementById("btn-close-log-form").addEventListener("click", () => {
+                document.getElementById("overlay-add-log").classList.remove("active");
+            });
+            document.getElementById("btn-settings").addEventListener("click", () => {
+                document.getElementById("overlay-settings").classList.add("active");
+            });
+            document.getElementById("btn-close-settings").addEventListener("click", () => {
+                document.getElementById("overlay-settings").classList.remove("active");
+            });
+
+            document.getElementById("btn-todo-all-check").addEventListener("click", () => {
+                document.querySelectorAll(".todo-check-box").forEach(cb => cb.checked = true);
+            });
+
+            document.getElementById("btn-flip-to-loan-form").addEventListener("click", () => {
+                document.getElementById("rescue-cards-stack").classList.add("back-view");
+            });
+            document.getElementById("btn-flip-back-loan").addEventListener("click", () => {
+                document.getElementById("rescue-cards-stack").classList.remove("back-view");
+            });
+            document.getElementById("btn-save-log-form").addEventListener("click", executeClientAccounting);
+            document.getElementById("btn-execute-rescue-loan").addEventListener("click", executeLoanRescueAction);
+            document.getElementById("btn-execute-rescue-tbb").addEventListener("click", () => executeDirectRescue("台灣企銀"));
+            document.getElementById("btn-execute-rescue-tcbb").addEventListener("click", () => executeDirectRescue("台中銀行"));
+            document.getElementById("btn-execute-rescue-yuanta").addEventListener("click", () => executeDirectRescue("元大帳戶變現"));
+            document.getElementById("btn-save-project").addEventListener("click", executeCreateProject);
+
+            let resetTimer;
+            const resetBtn = document.getElementById("btn-system-reset");
+            resetBtn.addEventListener("touchstart", () => {
+                resetTimer = setTimeout(() => {
+                    alert("Fluid Wealth OS 系統重製初始化完成！");
+                    location.reload();
+                }, 3000);
+            });
+            resetBtn.addEventListener("touchend", () => clearTimeout(resetTimer));
+        }
+
+        function executeClientAccounting() {
+            const acc = document.getElementById("form-log-account").value;
+            const type = document.getElementById("form-log-type").value;
+            const amt = parseFloat(document.getElementById("form-log-amount").value) || 0;
+            const label = document.getElementById("form-log-label").value;
+            const proj = document.getElementById("form-log-project").value;
+
+            if(amt <= 0) return alert("請輸入正確金額");
+
+            if(acc === "中國信託" && type.indexOf("外輸出") > -1) {
+                let currentMonthSpent = 0;
+                appState.logs.forEach(log => {
+                    if(log["帳戶"] === "中國信託" && log["流向分類"] && log["流向分類"].indexOf("外輸出") > -1) {
+                        currentMonthSpent += parseFloat(log["金額"]) || 0;
+                    }
+                });
+                
+                if(currentMonthSpent + amt > appState.monthlyBudgetLimit) {
+                    document.getElementById("overlay-add-log").classList.remove("active");
+                    
+                    const tbbCurrent = appState.balances["台灣企銀"] || 0;
+                    const rescueTbbBtn = document.getElementById("btn-execute-rescue-tbb");
+                    const rescueTbbStatus = document.getElementById("txt-rescue-tbb-status");
+                    if(tbbCurrent < 3000) {
+                        rescueTbbBtn.disabled = true;
+                        rescueTbbBtn.style.background = "#333";
+                        rescueTbbStatus.innerText = "[🚨 警告：台企銀低於 $3,000 死線已鎖死]";
+                        rescueTbbStatus.style.color = "var(--neon-red)";
+                    }
+                    
+                    document.getElementById("rescue-panel-overlay").classList.add("active");
+                    return;
+                }
+            }
+
+            sendAccountingToCloud(acc, type, amt, label, proj);
+        }
+
+        function sendAccountingToCloud(account, type, amount, label, project) {
+            document.getElementById("overlay-add-log").classList.remove("active");
+            fetch(`${API_URL}?action=addLog&account=${encodeURIComponent(account)}&type=${encodeURIComponent(type)}&amount=${amount}&label=${encodeURIComponent(label)}&project=${encodeURIComponent(project)}`)
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === "success") {
+                        refreshCloudData();
+                    }
+                });
+        }
+
+        function executeCreateProject() {
+            const pName = document.getElementById("form-p-name").value;
+            const pType = document.getElementById("form-p-type").value;
+            const target = parseFloat(document.getElementById("form-p-target").value) || 0;
+
+            if(!pName || target <= 0) return alert("請輸入完整計畫資料欄位");
+
+            document.getElementById("overlay-settings").classList.remove("active");
+            fetch(`${API_URL}?action=addProject&projectName=${encodeURIComponent(pName)}&projectType=${encodeURIComponent(pType)}&targetAmount=${target}&account=${pType==="儲蓄計畫"?"台中銀行":"中國信託"}&label=旅遊`)
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === "success") {
+                        refreshCloudData();
+                    }
+                });
+        }
+
+        function executeDirectRescue(rescueSource) {
+            document.getElementById("rescue-panel-overlay").classList.remove("active");
+            alert(`已完成從 [${rescueSource}] 的實體應變調撥，帳務編列平衡！`);
+            refreshCloudData();
+        }
+
+        function executeLoanRescueAction() {
+            const lender = "下個月的自己";
+            const amt = parseFloat(document.getElementById("input-loan-amount").value) || 0;
+            if(amt <= 0) return alert("請確認透支借款金額");
+
+            fetch(`${API_URL}?action=addDebt&lender=${encodeURIComponent(lender)}&amount=${amt}`)
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === "success") {
+                        document.getElementById("rescue-panel-overlay").classList.remove("active");
+                        document.getElementById("rescue-cards-stack").classList.remove("back-view");
+                        refreshCloudData();
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
